@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -43,15 +42,15 @@ func startANetwork(ip, port string, id uint64) *p2p.Network {
 }
 
 func main() {
-	log.SetLevel(log.PanicLevel)
-	log.SetOutput(ioutil.Discard)
+	log.SetLevel(log.DebugLevel)
+	//log.SetOutput(ioutil.Discard)
 
 	mux := CreateSeedMux([]string{"127.1.0.1:8090\n127.2.0.2:8090\n127.3.0.3:8090"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
-
-	for i := 1; i <= 2; i++ {
+	//networks = append(networks, startANetwork("", "8090", 1))
+	for i := 1; i <= 10; i++ {
 		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i)))
 	}
 
