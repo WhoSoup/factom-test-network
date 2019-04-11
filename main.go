@@ -21,13 +21,13 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 	config.NodeID = id
 	config.BindIP = ip
 	config.ListenPort = port
-	config.PeerRequestInterval = time.Second * 5
-	config.PingInterval = time.Second * 5
-	config.ReadDeadline = time.Second * 10
-	config.WriteDeadline = time.Second * 10
-	config.RedialInterval = time.Second * 15
+	config.PeerRequestInterval = time.Second * 15
+	config.PingInterval = time.Second * 10
+	config.ReadDeadline = time.Second * 60
+	config.WriteDeadline = time.Second * 60
+	config.RedialInterval = time.Second * 10
 	config.MinimumQualityScore = -1
-	config.Outgoing = 32
+	config.Outgoing = 6
 	config.Incoming = 150
 
 	network := p2p.NewNetwork(config)
@@ -57,7 +57,7 @@ func main() {
 
 	var networks []*p2p.Network
 	//networks = append(networks, startANetwork("", "8090", 1))
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 50; i++ {
 		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6))
 	}
 
@@ -80,8 +80,9 @@ func main() {
 		time.Sleep(time.Second)
 		if time.Since(start) > 60*time.Second {
 			start = time.Now().AddDate(50, 0, 0)
-			fmt.Println("Adding network #11")
-			networks = append(networks, startANetwork("127.11.0.11", "8090", 11, 0))
+			newnet := uint64(len(networks))
+			fmt.Println("Adding network ", newnet)
+			networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0))
 		}
 	}
 	//time.Sleep(time.H)
