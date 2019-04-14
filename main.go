@@ -72,13 +72,14 @@ func main() {
 			hv += b
 		}
 		rw.Write([]byte("\n" + hv))
+		rw.Write([]byte("\n127.1.0.1 {color: red}\n127.2.0.2 {color: green}\n127.3.0.3 {color: blue}"))
 	})
 
 	start := time.Now()
 	for {
 		//fmt.Println(controller.)
 		time.Sleep(time.Second)
-		if time.Since(start) > 60*time.Second {
+		if time.Since(start) > 30*time.Second {
 			start = time.Now().AddDate(50, 0, 0)
 			newnet := uint64(len(networks))
 			fmt.Println("Adding network ", newnet)
