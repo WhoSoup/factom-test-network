@@ -1,12 +1,13 @@
 package main
 
+import _ "net/http/pprof"
 import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -41,7 +42,7 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 		})
 	}
 	go func() {
-		time.Sleep(time.Second * time.Duration((rand.Intn(10) + 1)))
+		time.Sleep(time.Millisecond * time.Duration(id*200))
 		network.Start()
 	}()
 	return network
@@ -51,7 +52,9 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 func main() {
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(ioutil.Discard)
-
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 	mux := CreateSeedMux([]string{"127.1.0.1:8090\n127.2.0.2:8090\n127.3.0.3:8090"})
 	go StartSeedServer("localhost:81", mux)
 
@@ -61,13 +64,17 @@ func main() {
 		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6))
 	}
 
+	count := 0
+
 	mux.HandleFunc("/debug", func(rw http.ResponseWriter, req *http.Request) {
 		hv := ""
+		count = 0
 		for i, c := range networks {
 			if i != 0 {
 				rw.Write([]byte(fmt.Sprintf("\n\n==============================\n\tNetwork %d\n==============================\n", i+1)))
 			}
-			a, b := c.DebugMessage()
+			a, b, cc := c.DebugMessage()
+			count += cc
 			rw.Write([]byte(a))
 			hv += b
 		}
@@ -75,16 +82,46 @@ func main() {
 		rw.Write([]byte("\n127.1.0.1 {color: red}\n127.2.0.2 {color: green}\n127.3.0.3 {color: blue}"))
 	})
 
-	start := time.Now()
+	time.AfterFunc(10*time.Second, func() {
+		newnet := uint64(len(networks))
+		fmt.Println("Adding network ", newnet)
+		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0))
+	})
+
+	time.AfterFunc(13*time.Second, func() {
+		p := p2p.NewParcel(p2p.TypeMessage, []byte("Test"))
+		p.Header.TargetPeer = p2p.BroadcastFlag
+		networks[0].ToNetwork.Send(p)
+		fmt.Println("Sent")
+	})
+	time.AfterFunc(15*time.Second, func() {
+		for i, n := range networks {
+			select {
+			case p := <-n.FromNetwork.Reader():
+				fmt.Printf("Network %d received parcel with message %s\n", i+1, p.Payload)
+			default:
+
+			}
+		}
+	})
+
+	time.AfterFunc(time.Second*30, func() {
+		fmt.Println("Stopping networks")
+		for _, n := range networks {
+			n.Stop()
+		}
+		//networks[0].Stop()
+	})
+
+	/*time.AfterFunc(time.Second*18, func() {
+		fmt.Println("Restarting network 0")
+		networks[0].Start()
+	})*/
+
 	for {
 		//fmt.Println(controller.)
-		time.Sleep(time.Second)
-		if time.Since(start) > 30*time.Second {
-			start = time.Now().AddDate(50, 0, 0)
-			newnet := uint64(len(networks))
-			fmt.Println("Adding network ", newnet)
-			networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0))
-		}
+		time.Sleep(time.Second * 5)
+		fmt.Println("Goroutines", runtime.NumGoroutine(), "count", count)
 	}
 	//time.Sleep(time.H)
 
