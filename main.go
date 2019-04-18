@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -30,6 +29,7 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 	config.MinimumQualityScore = -1
 	config.Outgoing = 6
 	config.Incoming = 150
+	config.PeerIPLimit = 5
 
 	network := p2p.NewNetwork(config)
 
@@ -55,13 +55,13 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"127.1.0.1:8090\n127.2.0.2:8090\n127.3.0.3:8090"})
+	mux := CreateSeedMux([]string{"127.0.0.1:8091\n127.0.0.1:8090\n127.0.0.1:8090"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
 	//networks = append(networks, startANetwork("", "8090", 1))
 	for i := 1; i <= 50; i++ {
-		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6))
+		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", 0, 1), fmt.Sprintf("%d", 8090+i), uint64(i), 6))
 	}
 
 	count := 0
@@ -88,28 +88,28 @@ func main() {
 		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0))
 	})
 
-	time.AfterFunc(13*time.Second, func() {
-		p := p2p.NewParcel(p2p.TypeMessage, []byte("Test"))
-		p.Header.TargetPeer = p2p.FullBroadcastFlag
-		networks[0].ToNetwork.Send(p)
-		fmt.Println("Sent")
-	})
-	time.AfterFunc(15*time.Second, func() {
-		for i, n := range networks {
-			select {
-			case p := <-n.FromNetwork.Reader():
-				fmt.Printf("Network %d received parcel with message %s\n", i+1, p.Payload)
-			default:
+	/*	time.AfterFunc(13*time.Second, func() {
+			p := p2p.NewParcel(p2p.TypeMessage, []byte("Test"))
+			p.Header.TargetPeer = p2p.FullBroadcastFlag
+			networks[0].ToNetwork.Send(p)
+			fmt.Println("Sent")
+		})
+		time.AfterFunc(15*time.Second, func() {
+			for i, n := range networks {
+				select {
+				case p := <-n.FromNetwork.Reader():
+					fmt.Printf("Network %d received parcel with message %s\n", i+1, p.Payload)
+				default:
+				}
 			}
-		}
-	})
+		})*/
 
-	time.AfterFunc(time.Second*30, func() {
+	/*	time.AfterFunc(time.Second*30, func() {
 		fmt.Println("Stopping networks")
 		for _, n := range networks {
 			n.Stop()
 		}
-	})
+	})*/
 
 	/*time.AfterFunc(time.Second*18, func() {
 		fmt.Println("Restarting network 0")
@@ -119,7 +119,7 @@ func main() {
 	for {
 		//fmt.Println(controller.)
 		time.Sleep(time.Second * 5)
-		fmt.Println("Goroutines", runtime.NumGoroutine(), "count", count)
+		//fmt.Println("Goroutines", runtime.NumGoroutine(), "count", count)
 	}
 	//time.Sleep(time.H)
 
