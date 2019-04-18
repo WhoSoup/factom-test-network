@@ -7,7 +7,7 @@ import (
 
 func CreateSeedMux(seeds []string) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/seed", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Println("Hit on seed from", req.RemoteAddr)
 		for _, s := range seeds {
 			rw.Write([]byte(fmt.Sprintln(s)))

@@ -17,7 +17,7 @@ import (
 func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 	config := p2p.DefaultP2PConfiguration()
 	config.Network = 1
-	config.SeedURL = "http://localhost:81/"
+	config.SeedURL = "http://localhost:81/seed"
 	config.NodeName = fmt.Sprintf("TestNode%d", id)
 	config.NodeID = id
 	config.BindIP = ip
@@ -90,7 +90,7 @@ func main() {
 
 	time.AfterFunc(13*time.Second, func() {
 		p := p2p.NewParcel(p2p.TypeMessage, []byte("Test"))
-		p.Header.TargetPeer = p2p.BroadcastFlag
+		p.Header.TargetPeer = p2p.FullBroadcastFlag
 		networks[0].ToNetwork.Send(p)
 		fmt.Println("Sent")
 	})
@@ -100,7 +100,6 @@ func main() {
 			case p := <-n.FromNetwork.Reader():
 				fmt.Printf("Network %d received parcel with message %s\n", i+1, p.Payload)
 			default:
-
 			}
 		}
 	})
@@ -110,7 +109,6 @@ func main() {
 		for _, n := range networks {
 			n.Stop()
 		}
-		//networks[0].Stop()
 	})
 
 	/*time.AfterFunc(time.Second*18, func() {
