@@ -29,7 +29,11 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 	config.MinimumQualityScore = -1
 	config.Outgoing = 6
 	config.Incoming = 150
-	config.PeerIPLimit = 5
+	config.PeerIPLimitIncoming = 50
+	config.PeerIPLimitOutgoing = 50
+	config.ListenLimit = time.Millisecond * 50
+	config.PeerFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
+	config.PersistInterval = time.Minute
 
 	network := p2p.NewNetwork(config)
 
@@ -55,13 +59,13 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"127.0.0.1:8091\n127.0.0.1:8090\n127.0.0.1:8090"})
+	mux := CreateSeedMux([]string{"127.1.0.1:8090\n127.2.0.2:8090\n127.3.0.3:8090"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
 	//networks = append(networks, startANetwork("", "8090", 1))
 	for i := 1; i <= 50; i++ {
-		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", 0, 1), fmt.Sprintf("%d", 8090+i), uint64(i), 6))
+		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6))
 	}
 
 	count := 0
@@ -79,7 +83,7 @@ func main() {
 			hv += b
 		}
 		rw.Write([]byte("\n" + hv))
-		rw.Write([]byte("\n127.1.0.1 {color: red}\n127.2.0.2 {color: green}\n127.3.0.3 {color: blue}"))
+		rw.Write([]byte("\n127.1.0.1:8090 {color: red}\n127.2.0.2:8090 {color: green}\n127.3.0.3:8090 {color: blue}"))
 	})
 
 	time.AfterFunc(10*time.Second, func() {
