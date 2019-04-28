@@ -37,7 +37,7 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 
 	network := p2p.NewNetwork(config)
 
-	if id < hook {
+	if id < hook || id == 50 {
 		f, _ := os.Create(config.NodeName + ".txt")
 		w := bufio.NewWriter(f)
 		log.AddHook(&WriterHook{
@@ -63,9 +63,12 @@ func main() {
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
+	var apps []*SimulApp
 	//networks = append(networks, startANetwork("", "8090", 1))
 	for i := 1; i <= 50; i++ {
-		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6))
+		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6)
+		networks = append(networks, n)
+		apps = append(apps, NewSimulApp(byte(i), n))
 	}
 
 	count := 0
@@ -79,6 +82,7 @@ func main() {
 			}
 			a, b, cc := c.DebugMessage()
 			count += cc
+			rw.Write([]byte(fmt.Sprintf("%v", apps[i].seen)))
 			rw.Write([]byte(a))
 			hv += b
 		}
@@ -89,7 +93,16 @@ func main() {
 	time.AfterFunc(10*time.Second, func() {
 		newnet := uint64(len(networks))
 		fmt.Println("Adding network ", newnet)
-		networks = append(networks, startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0))
+		n := startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0)
+		networks = append(networks, n)
+		apps = append(apps, NewSimulApp(byte(newnet), n))
+	})
+
+	time.AfterFunc(40*time.Second, func() {
+		fmt.Println("Sending")
+		for _, a := range apps {
+			a.send()
+		}
 	})
 
 	/*	time.AfterFunc(13*time.Second, func() {
