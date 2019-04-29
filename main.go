@@ -1,11 +1,11 @@
 package main
 
-import _ "net/http/pprof"
 import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
