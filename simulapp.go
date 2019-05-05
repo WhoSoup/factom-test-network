@@ -29,7 +29,7 @@ func (sa *SimulApp) read() {
 			sa.seen[p.Payload[0]-1]++
 
 			if p.Payload[1] > 0 && s == 0 {
-				p.Header.TargetPeer = p2p.BroadcastFlag
+				p.Address = p2p.BroadcastFlag
 				p.Payload[1]--
 				p.SetPayload(p.Payload) // recalculate checksum
 				sa.net.ToNetwork.Send(p)
