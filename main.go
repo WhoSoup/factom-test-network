@@ -35,6 +35,11 @@ func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
 	config.ListenLimit = time.Millisecond * 50
 	config.PeerFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
 	config.PersistInterval = time.Minute
+	if id%2 == 0 {
+		config.ProtocolVersion = 9
+	} else {
+		config.ProtocolVersion = 10
+	}
 
 	if id != 1 {
 		config.EnablePrometheus = false

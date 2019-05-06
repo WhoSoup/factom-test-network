@@ -31,7 +31,6 @@ func (sa *SimulApp) read() {
 			if p.Payload[1] > 0 && s == 0 {
 				p.Address = p2p.BroadcastFlag
 				p.Payload[1]--
-				p.SetPayload(p.Payload) // recalculate checksum
 				sa.net.ToNetwork.Send(p)
 			}
 		}
