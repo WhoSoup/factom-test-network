@@ -14,12 +14,12 @@ import (
 	"github.com/whosoup/factom-p2p"
 )
 
-func startANetwork(ip, port string, id uint64, hook uint64) *p2p.Network {
+func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config := p2p.DefaultP2PConfiguration()
 	config.Network = 1
 	config.SeedURL = "http://localhost:81/seed"
 	config.NodeName = fmt.Sprintf("TestNode%d", id)
-	config.NodeID = id
+	//config.NodeID = id
 	config.BindIP = ip
 	config.ListenPort = port
 	config.PeerRequestInterval = time.Second * 15
@@ -76,7 +76,7 @@ func main() {
 	var apps []*SimulApp
 	//networks = append(networks, startANetwork("", "8090", 1))
 	for i := 1; i <= 50; i++ {
-		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint64(i), 6)
+		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint32(i), 6)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(i), n))
 	}
@@ -105,7 +105,7 @@ func main() {
 	})
 
 	time.AfterFunc(10*time.Second, func() {
-		newnet := uint64(len(networks))
+		newnet := uint32(len(networks))
 		fmt.Println("Adding network ", newnet)
 		n := startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0)
 		networks = append(networks, n)
