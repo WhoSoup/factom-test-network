@@ -28,13 +28,14 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.WriteDeadline = time.Second * 60
 	config.RedialInterval = time.Second * 10
 	config.MinimumQualityScore = -1
-	config.Outgoing = 6
+	config.Outgoing = 4
 	config.Incoming = 150
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
 	config.ListenLimit = time.Millisecond * 50
-	config.PeerFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
+	config.PersistFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
 	config.PersistInterval = time.Minute
+	config.Special = "127.40.0.40:8110,127.41.0.41:8110,127.42.0.42:8110"
 	if id%2 == 0 {
 		config.ProtocolVersion = 9
 	} else {
@@ -69,14 +70,14 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"127.1.0.1:8090\n127.2.0.2:8090\n127.3.0.3:8090"})
+	mux := CreateSeedMux([]string{"127.1.0.1:8110\n127.2.0.2:8110\n127.3.0.3:8110"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
 	var apps []*SimulApp
-	//networks = append(networks, startANetwork("", "8090", 1))
+	//networks = append(networks, startANetwork("", "8110", 1))
 	for i := 1; i <= 50; i++ {
-		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8090", uint32(i), 6)
+		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8110", uint32(i), 6)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(i), n))
 	}
@@ -101,13 +102,13 @@ func main() {
 			hv += b
 		}
 		rw.Write([]byte("\n" + hv))
-		rw.Write([]byte("\n127.1.0.1:8090 {color: red}\n127.2.0.2:8090 {color: green}\n127.3.0.3:8090 {color: blue}"))
+		rw.Write([]byte("\n127.1.0.1:8110 {color: red}\n127.2.0.2:8110 {color: green}\n127.3.0.3:8110 {color: blue}"))
 	})
 
 	time.AfterFunc(10*time.Second, func() {
 		newnet := uint32(len(networks))
 		fmt.Println("Adding network ", newnet)
-		n := startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8090", newnet, 0)
+		n := startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8110", newnet, 0)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(newnet), n))
 	})
