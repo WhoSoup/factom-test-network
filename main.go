@@ -35,7 +35,7 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.ListenLimit = time.Millisecond * 50
 	config.PersistFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
 	config.PersistInterval = time.Minute
-	config.Special = "127.40.0.40:8110,127.41.0.41:8110,127.42.0.42:8110"
+	config.Special = "127.1.0.1:8110,127.41.0.41:8110,127.42.0.42:8110"
 	if id%2 == 0 {
 		config.ProtocolVersion = 9
 	} else {
@@ -80,6 +80,7 @@ func main() {
 		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8110", uint32(i), 6)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(i), n))
+		time.Sleep(time.Millisecond)
 	}
 
 	promux := http.NewServeMux()

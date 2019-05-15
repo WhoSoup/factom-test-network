@@ -29,7 +29,7 @@ func (sa *SimulApp) read() {
 			sa.seen[p.Payload[0]-1]++
 
 			if p.Payload[1] > 0 && s == 0 {
-				p.Address = p2p.BroadcastFlag
+				p.Address = p2p.Broadcast
 				p.Payload[1]--
 				sa.net.ToNetwork.Send(p)
 			}
@@ -38,6 +38,6 @@ func (sa *SimulApp) read() {
 }
 
 func (sa *SimulApp) send() {
-	p := p2p.NewMessage([]byte{sa.id, 5})
+	p := p2p.NewMessage(p2p.Broadcast, []byte{sa.id, 5})
 	sa.net.ToNetwork.Send(p)
 }
