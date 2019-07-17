@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -27,6 +28,11 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.ReadDeadline = time.Second * 60
 	config.WriteDeadline = time.Second * 60
 	config.RedialInterval = time.Second * 10
+	config.RoundTime = time.Second * 10
+	config.Target = 8
+	config.Max = 16
+	config.Drop = 6
+	config.MinReseed = 3
 	config.MinimumQualityScore = -1
 	config.Outgoing = 4
 	config.Incoming = 150
@@ -90,20 +96,78 @@ func main() {
 	count := 0
 
 	mux.HandleFunc("/debug", func(rw http.ResponseWriter, req *http.Request) {
-		hv := ""
 		count = 0
 		for i, c := range networks {
 			if i != 0 {
 				rw.Write([]byte(fmt.Sprintf("\n\n==============================\n\tNetwork %d\n==============================\n", i+1)))
 			}
-			a, b, cc := c.DebugMessage()
+			a, _, cc := c.DebugMessage()
 			count += cc
 			rw.Write([]byte(fmt.Sprintf("%v", apps[i].seen)))
 			rw.Write([]byte(a))
-			hv += b
 		}
-		rw.Write([]byte("\n" + hv))
+	})
+
+	mux.HandleFunc("/halfviz", func(rw http.ResponseWriter, req *http.Request) {
+		count = 0
+		for _, c := range networks {
+			_, b, _ := c.DebugMessage()
+			rw.Write([]byte(b))
+		}
+
 		rw.Write([]byte("\n127.1.0.1:8110 {color: red}\n127.2.0.2:8110 {color: green}\n127.3.0.3:8110 {color: blue}"))
+	})
+
+	mux.HandleFunc("/ana", func(rw http.ResponseWriter, req *http.Request) {
+		var min, max, connections, total, rounds int
+		min = math.MaxInt32
+		for _, c := range networks {
+			cons := c.Total()
+			r := c.Rounds()
+			if r > rounds {
+				rounds = r
+			}
+			total++
+			connections += cons
+			if cons < min {
+				min = cons
+			}
+			if cons > max {
+				max = cons
+			}
+		}
+
+		mean := float64(connections) / float64(total)
+		var deviation float64
+
+		for _, c := range networks {
+			cons := c.Total()
+			dev := float64(cons) - mean
+			if dev < 0 {
+				dev = -dev
+			}
+			deviation += dev
+		}
+
+		msg := fmt.Sprintf("Total Connections: %d\n", total)
+		msg += fmt.Sprintf("Rounds: %d", rounds)
+		msg += fmt.Sprintf("Min: %d\n", min)
+		msg += fmt.Sprintf("Max: %d\n", max)
+		msg += fmt.Sprintf("Average Connections: %f\n", mean)
+		msg += fmt.Sprintf("Deviation: %f\n", deviation)
+
+		rw.Write([]byte(msg))
+	})
+
+	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte(`<!doctype html><html><body><ul>
+		<li><a href="/debug">global network</a></li>
+		<li><a href="/halfviz">halfviz</a></li>
+		<li><a href="/ana">network imbalance analysis</a></li>
+		<li><a href="http://localhost:82/metrics">prometheus</a></li>
+		<li><a href="http://localhost:8070/debug">network 0 debug</a></li>
+		<li><a href="http://localhost:8070/stats">network 0 stats</a></li>
+		</ul></body></html>`))
 	})
 
 	time.AfterFunc(10*time.Second, func() {
