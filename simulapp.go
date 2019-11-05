@@ -14,7 +14,7 @@ func NewSimulApp(id byte, n *p2p.Network) *SimulApp {
 	sa := new(SimulApp)
 	sa.net = n
 	sa.id = id
-	sa.seen = make([]int, 51)
+	sa.seen = make([]int, 255)
 
 	go sa.read()
 

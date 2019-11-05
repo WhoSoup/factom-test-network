@@ -28,14 +28,15 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.ReadDeadline = time.Second * 60
 	config.WriteDeadline = time.Second * 60
 	config.RedialInterval = time.Second * 10
-	config.RoundTime = time.Second * 10
-	config.Target = 8
-	config.Max = 16
+	config.RoundTime = time.Minute
+	config.PeerShareAmount = 3
+	config.Target = 32
+	config.Max = 32
 	config.Drop = 6
 	config.MinReseed = 3
 	config.MinimumQualityScore = -1
 	config.Outgoing = 4
-	config.Incoming = 150
+	config.Incoming = 64
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
 	config.ListenLimit = time.Millisecond * 50
@@ -52,7 +53,10 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 		config.EnablePrometheus = false
 	}
 
-	network := p2p.NewNetwork(config)
+	network, err := p2p.NewNetwork(config)
+	if err != nil {
+		panic(err)
+	}
 
 	if id < hook || id == 50 {
 		f, _ := os.Create(config.NodeName + ".txt")
@@ -82,7 +86,7 @@ func main() {
 	var networks []*p2p.Network
 	var apps []*SimulApp
 	//networks = append(networks, startANetwork("", "8110", 1))
-	for i := 1; i <= 50; i++ {
+	for i := 1; i <= 125; i++ {
 		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8110", uint32(i), 6)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(i), n))
