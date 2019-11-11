@@ -34,8 +34,6 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.Max = 36
 	config.Drop = 28
 	config.MinReseed = 3
-	config.MinimumQualityScore = -1
-	config.Outgoing = 4
 	config.Incoming = 36
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
@@ -86,7 +84,7 @@ func main() {
 	var networks []*p2p.Network
 	var apps []*SimulApp
 	//networks = append(networks, startANetwork("", "8110", 1))
-	for i := 1; i <= 150; i++ {
+	for i := 1; i <= 250; i++ {
 		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8110", uint32(i), 6)
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(byte(i), n))

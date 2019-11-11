@@ -38,6 +38,6 @@ func (sa *SimulApp) read() {
 }
 
 func (sa *SimulApp) send() {
-	p := p2p.NewMessage(p2p.Broadcast, []byte{sa.id, 5})
+	p := p2p.NewParcel(p2p.Broadcast, []byte{sa.id, 5})
 	sa.net.ToNetwork.Send(p)
 }
