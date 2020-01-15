@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -12,17 +13,24 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/whosoup/factom-p2p"
+	p2p "github.com/whosoup/factom-p2p"
 )
 
-func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
+const LogMax = 5
+const Port = "8110"
+
+var ig *IPGenerator
+
+func startANetwork() *p2p.Network {
+	id, ip := ig.Next()
+
 	config := p2p.DefaultP2PConfiguration()
 	config.Network = 1
 	config.SeedURL = "http://localhost:81/seed"
 	config.NodeName = fmt.Sprintf("TestNode%d", id)
 	//config.NodeID = id
 	config.BindIP = ip
-	config.ListenPort = port
+	config.ListenPort = Port
 	config.PeerRequestInterval = time.Second * 5
 	config.PingInterval = time.Second * 10
 	config.ReadDeadline = time.Second * 60
@@ -38,9 +46,10 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
 	config.ListenLimit = time.Millisecond * 50
-	config.PersistFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, port, id)
-	config.PersistInterval = time.Minute
-	config.Special = "127.1.0.1:8110,127.41.0.41:8110,127.42.0.42:8110"
+	//config.PersistFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, Port, id)
+	config.Fanout = 8
+	//config.PersistInterval = time.Minute
+	//config.Special = "127.1.0.1:8110,127.41.0.41:8110,127.42.0.42:8110"
 	if id%2 == 0 {
 		config.ProtocolVersion = 9
 	} else {
@@ -56,7 +65,7 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 		panic(err)
 	}
 
-	if id < hook || id == 50 {
+	if id <= LogMax || id == 50 {
 		f, _ := os.Create(config.NodeName + ".txt")
 		w := bufio.NewWriter(f)
 		log.AddHook(&WriterHook{
@@ -73,21 +82,26 @@ func startANetwork(ip, port string, id uint32, hook uint32) *p2p.Network {
 }
 
 func main() {
+
+	var networkCount = flag.Int("n", 50, "number of networks to start")
+	flag.Parse()
+
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(ioutil.Discard)
+	ig = NewIPGenerator()
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"127.1.0.1:8110\n127.2.0.2:8110\n127.3.0.3:8110"})
+	mux := CreateSeedMux([]string{"127.0.0.1:8110\n127.0.0.2:8110\n127.0.0.3:8110"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
 	var apps []*SimulApp
 	//networks = append(networks, startANetwork("", "8110", 1))
-	for i := 1; i <= 250; i++ {
-		n := startANetwork(fmt.Sprintf("127.%d.0.%d", i, i), "8110", uint32(i), 6)
+	for i := 1; i <= *networkCount; i++ {
+		n := startANetwork()
 		networks = append(networks, n)
-		apps = append(apps, NewSimulApp(byte(i), n))
+		apps = append(apps, NewSimulApp(i, n))
 		time.Sleep(time.Millisecond)
 	}
 
@@ -117,7 +131,7 @@ func main() {
 			rw.Write([]byte(b))
 		}
 
-		rw.Write([]byte("\n127.1.0.1:8110 {color: red}\n127.2.0.2:8110 {color: green}\n127.3.0.3:8110 {color: blue}"))
+		rw.Write([]byte("\n127.0.0.1:8110 {color: red}\n127.0.0.2:8110 {color: green}\n127.0.0.3:8110 {color: blue}"))
 	})
 
 	mux.HandleFunc("/ana", func(rw http.ResponseWriter, req *http.Request) {
@@ -175,51 +189,12 @@ func main() {
 	time.AfterFunc(10*time.Second, func() {
 		newnet := uint32(len(networks))
 		fmt.Println("Adding network ", newnet)
-		n := startANetwork(fmt.Sprintf("127.%d.0.%d", newnet, newnet), "8110", newnet, 0)
+		n := startANetwork()
 		networks = append(networks, n)
-		apps = append(apps, NewSimulApp(byte(newnet), n))
+		apps = append(apps, NewSimulApp(int(newnet), n))
 	})
-
-	time.AfterFunc(40*time.Second, func() {
-		fmt.Println("Sending")
-		for _, a := range apps {
-			a.send()
-		}
-	})
-
-	/*	time.AfterFunc(13*time.Second, func() {
-			p := p2p.NewParcel(p2p.TypeMessage, []byte("Test"))
-			p.Header.TargetPeer = p2p.FullBroadcastFlag
-			networks[0].ToNetwork.Send(p)
-			fmt.Println("Sent")
-		})
-		time.AfterFunc(15*time.Second, func() {
-			for i, n := range networks {
-				select {
-				case p := <-n.FromNetwork.Reader():
-					fmt.Printf("Network %d received parcel with message %s\n", i+1, p.Payload)
-				default:
-				}
-			}
-		})*/
-
-	/*	time.AfterFunc(time.Second*30, func() {
-		fmt.Println("Stopping networks")
-		for _, n := range networks {
-			n.Stop()
-		}
-	})*/
-
-	/*time.AfterFunc(time.Second*18, func() {
-		fmt.Println("Restarting network 0")
-		networks[0].Start()
-	})*/
 
 	for {
-		//fmt.Println(controller.)
 		time.Sleep(time.Second * 5)
-		//fmt.Println("Goroutines", runtime.NumGoroutine(), "count", count)
 	}
-	//time.Sleep(time.H)
-
 }
