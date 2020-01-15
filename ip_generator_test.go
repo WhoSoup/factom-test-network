@@ -7,7 +7,7 @@ func TestIPGenerator_Next(t *testing.T) {
 	tests := []struct {
 		name  string
 		ig    *IPGenerator
-		want  int
+		want  uint32
 		want1 string
 	}{
 		{"first", ig, 1, "127.0.0.1"},
@@ -32,7 +32,7 @@ func TestIPGenerator_Next(t *testing.T) {
 	tests = []struct {
 		name  string
 		ig    *IPGenerator
-		want  int
+		want  uint32
 		want1 string
 	}{
 		{"before", ig, 254, "127.0.0.254"},
