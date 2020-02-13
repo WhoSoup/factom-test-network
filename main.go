@@ -17,12 +17,18 @@ import (
 )
 
 const LogMax = 5
-const Port = "8110"
+const Port = "8888"
 
 var ig *IPGenerator
 
 func startANetwork() *p2p.Network {
 	id, ip := ig.Next()
+
+	port := Port
+	if id == 1 {
+		ip = "localhost"
+		port = "7999"
+	}
 
 	config := p2p.DefaultP2PConfiguration()
 	config.Network = 1
@@ -30,7 +36,7 @@ func startANetwork() *p2p.Network {
 	config.NodeName = fmt.Sprintf("TestNode%d", id)
 	//config.NodeID = id
 	config.BindIP = ip
-	config.ListenPort = Port
+	config.ListenPort = port
 	config.PeerRequestInterval = time.Second * 5
 	config.PingInterval = time.Second * 10
 	config.ReadDeadline = time.Second * 60
@@ -38,22 +44,26 @@ func startANetwork() *p2p.Network {
 	config.RedialInterval = time.Second * 10
 	config.RoundTime = time.Minute
 	config.PeerShareAmount = 3
-	config.Target = 32
-	config.Max = 36
-	config.Drop = 28
+	config.TargetPeers = 32
+	config.MaxPeers = 36
+	config.DropTo = 28
 	config.MinReseed = 3
 	config.Incoming = 36
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
 	config.ListenLimit = time.Millisecond * 50
-	//config.PersistFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, Port, id)
+	//config.PeerCacheFile = fmt.Sprintf("C:\\work\\debug\\peers-%s-%s-%d.json", ip, Port, id)
 	config.Fanout = 8
 	//config.PersistInterval = time.Minute
-	//config.Special = "127.1.0.1:8110,127.41.0.41:8110,127.42.0.42:8110"
+	//config.Special = "127.1.0.1:8888,127.41.0.41:8888,127.42.0.42:8888"
 	if id%2 == 0 {
 		config.ProtocolVersion = 9
 	} else {
 		config.ProtocolVersion = 10
+	}
+
+	if id == 1 {
+		config.Special = "127.0.0.23:8888"
 	}
 
 	if id != 1 {
@@ -92,14 +102,17 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"127.0.0.1:8110\n127.0.0.2:8110\n127.0.0.3:8110"})
+	mux := CreateSeedMux([]string{"localhost:7999\n127.0.0.2:8888\n127.0.0.3:8888"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
 	var apps []*SimulApp
-	//networks = append(networks, startANetwork("", "8110", 1))
+	//networks = append(networks, startANetwork("", "8888", 1))
 	for i := 1; i <= *networkCount; i++ {
 		n := startANetwork()
+		if i == 1 {
+			p2p.DebugServer(n)
+		}
 		networks = append(networks, n)
 		apps = append(apps, NewSimulApp(i, n))
 		time.Sleep(time.Millisecond)
@@ -131,7 +144,7 @@ func main() {
 			rw.Write([]byte(b))
 		}
 
-		rw.Write([]byte("\n127.0.0.1:8110 {color: red}\n127.0.0.2:8110 {color: green}\n127.0.0.3:8110 {color: blue}"))
+		rw.Write([]byte("\n127.0.0.1:8888 {color: red}\n127.0.0.2:8888 {color: green}\n127.0.0.3:8888 {color: blue}"))
 	})
 
 	mux.HandleFunc("/ana", func(rw http.ResponseWriter, req *http.Request) {
