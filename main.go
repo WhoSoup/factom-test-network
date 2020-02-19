@@ -48,7 +48,7 @@ func startANetwork() *p2p.Network {
 	config.MaxPeers = 36
 	config.DropTo = 28
 	config.MinReseed = 3
-	config.Incoming = 36
+	config.MaxIncoming = 36
 	config.PeerIPLimitIncoming = 50
 	config.PeerIPLimitOutgoing = 50
 	config.ListenLimit = time.Millisecond * 50
