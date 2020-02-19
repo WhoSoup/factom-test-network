@@ -130,7 +130,7 @@ func main() {
 			if i != 0 {
 				rw.Write([]byte(fmt.Sprintf("\n\n==============================\n\tNetwork %d\n==============================\n", i+1)))
 			}
-			a, _, cc := c.DebugMessage()
+			a, cc := c.DebugMessage()
 			count += cc
 			rw.Write([]byte(fmt.Sprintf("%v", apps[i].seen)))
 			rw.Write([]byte(a))
@@ -140,7 +140,7 @@ func main() {
 	mux.HandleFunc("/halfviz", func(rw http.ResponseWriter, req *http.Request) {
 		count = 0
 		for _, c := range networks {
-			_, b, _ := c.DebugMessage()
+			b := c.DebugHalfviz()
 			rw.Write([]byte(b))
 		}
 
