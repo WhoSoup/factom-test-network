@@ -9,6 +9,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -207,7 +209,22 @@ func main() {
 		apps = append(apps, NewSimulApp(int(newnet), n))
 	})
 
-	for {
-		time.Sleep(time.Second * 5)
-	}
+	c := make(chan os.Signal, 3)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-c
+		fmt.Println("Received Ctrl+C")
+
+		for i, n := range networks {
+			if err := n.Stop(); err != nil {
+				fmt.Printf("error shutting down network %d: %v\n", i, err)
+			}
+			apps[i].Stop()
+		}
+		fmt.Println("All networks and apps shut down")
+		os.Exit(1)
+	}()
+
+	select {}
 }

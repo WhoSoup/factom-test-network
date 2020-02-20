@@ -13,6 +13,7 @@ type SimulApp struct {
 	net     *p2p.Network
 	id      int
 	counter int
+	stop    chan interface{}
 }
 type Msg struct {
 	Id          int
@@ -25,12 +26,15 @@ func NewSimulApp(id int, n *p2p.Network) *SimulApp {
 	sa.net = n
 	sa.id = id
 	sa.seen = make([]int, 1)
+	sa.stop = make(chan interface{})
 
 	go sa.read()
 	go sa.emit()
 
 	return sa
 }
+
+func (sa *SimulApp) Stop() { close(sa.stop) }
 
 func (sa *SimulApp) update(i, count int) {
 	for len(sa.seen) <= i {
@@ -51,6 +55,8 @@ func (sa *SimulApp) get(i int) int {
 func (sa *SimulApp) read() {
 	for {
 		select {
+		case <-sa.stop:
+			return
 		case p := <-sa.net.FromNetwork:
 
 			msg := new(Msg)
@@ -82,6 +88,11 @@ func (sa *SimulApp) read() {
 func (sa *SimulApp) emit() {
 	t := time.NewTicker(time.Second)
 	for range t.C {
+		select {
+		case <-sa.stop:
+			return
+		default:
+		}
 		sa.counter++
 		msg := Msg{Id: sa.id, Count: sa.counter, Rebroadcast: 5}
 		js, _ := json.Marshal(msg)
