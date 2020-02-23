@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"syscall"
 	"time"
 
@@ -212,10 +213,7 @@ func main() {
 	c := make(chan os.Signal, 3)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-		<-c
-		fmt.Println("Received Ctrl+C")
-
+	shutdown := func() {
 		for i, n := range networks {
 			if err := n.Stop(); err != nil {
 				fmt.Printf("error shutting down network %d: %v\n", i, err)
@@ -223,6 +221,14 @@ func main() {
 			apps[i].Stop()
 		}
 		fmt.Println("All networks and apps shut down")
+	}
+
+	go func() {
+		<-c
+		fmt.Println("Received Ctrl+C, initiating shutdown")
+		shutdown()
+		<-time.After(time.Second * 10)
+		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 		os.Exit(1)
 	}()
 
