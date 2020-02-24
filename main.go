@@ -215,9 +215,7 @@ func main() {
 
 	shutdown := func() {
 		for i, n := range networks {
-			if err := n.Stop(); err != nil {
-				fmt.Printf("error shutting down network %d: %v\n", i, err)
-			}
+			n.Stop()
 			apps[i].Stop()
 		}
 		fmt.Println("All networks and apps shut down")
@@ -226,6 +224,10 @@ func main() {
 	go func() {
 		<-c
 		fmt.Println("Received Ctrl+C, initiating shutdown")
+		go func() {
+			<-c
+			os.Exit(1)
+		}()
 		shutdown()
 		<-time.After(time.Second * 10)
 		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
