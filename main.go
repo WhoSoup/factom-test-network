@@ -24,14 +24,24 @@ const Port = "8888"
 
 var ig *IPGenerator
 
+func versionFromID(id uint32) uint16 {
+	if id%3 == 0 {
+		return 9
+	} else if id%3 == 1 {
+		return 10
+	} else {
+		return 11
+	}
+}
+
 func startANetwork() *p2p.Network {
 	id, ip := ig.Next()
 
 	port := Port
-	if id == 1 {
+	/*	if id == 1 {
 		ip = "localhost"
 		port = "7999"
-	}
+	}*/
 
 	config := p2p.DefaultP2PConfiguration()
 	config.Network = 1
@@ -59,11 +69,7 @@ func startANetwork() *p2p.Network {
 	config.Fanout = 8
 	//config.PersistInterval = time.Minute
 	//config.Special = "127.1.0.1:8888,127.41.0.41:8888,127.42.0.42:8888"
-	if id%2 == 0 {
-		config.ProtocolVersion = 9
-	} else {
-		config.ProtocolVersion = 10
-	}
+	config.ProtocolVersion = versionFromID(id)
 
 	if id == 1 {
 		config.Special = "127.0.0.23:8888"
@@ -105,7 +111,7 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-	mux := CreateSeedMux([]string{"localhost:7999\n127.0.0.2:8888\n127.0.0.3:8888"})
+	mux := CreateSeedMux([]string{"127.0.0.1:8888\n127.0.0.2:8888\n127.0.0.3:8888"})
 	go StartSeedServer("localhost:81", mux)
 
 	var networks []*p2p.Network
@@ -131,7 +137,9 @@ func main() {
 		count = 0
 		for i, c := range networks {
 			if i != 0 {
-				rw.Write([]byte(fmt.Sprintf("\n\n==============================\n\tNetwork %d\n==============================\n", i+1)))
+				id := i + 1
+				version := versionFromID(uint32(id))
+				rw.Write([]byte(fmt.Sprintf("\n\n==============================\n\tNetwork %d (Prot %d)\n==============================\n", i+1, version)))
 			}
 			a, cc := c.DebugMessage()
 			count += cc
