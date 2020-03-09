@@ -57,7 +57,7 @@ func (sa *SimulApp) read() {
 		select {
 		case <-sa.stop:
 			return
-		case p := <-sa.net.FromNetwork:
+		case p := <-sa.net.Reader():
 
 			msg := new(Msg)
 			if err := json.Unmarshal(p.Payload, msg); err != nil {
@@ -75,7 +75,7 @@ func (sa *SimulApp) read() {
 					msg.Rebroadcast--
 					js, _ := json.Marshal(msg)
 					p = p2p.NewParcel(p2p.Broadcast, js)
-					sa.net.ToNetwork <- p
+					sa.net.BlockingSend(p)
 					if sa.id == 0 {
 						fmt.Printf("1 sent [%d %d %d]\n", msg.Id, msg.Count, msg.Rebroadcast)
 					}
@@ -97,6 +97,6 @@ func (sa *SimulApp) emit() {
 		msg := Msg{Id: sa.id, Count: sa.counter, Rebroadcast: 5}
 		js, _ := json.Marshal(msg)
 		p := p2p.NewParcel(p2p.Broadcast, js)
-		sa.net.ToNetwork <- p
+		sa.net.BlockingSend(p)
 	}
 }
