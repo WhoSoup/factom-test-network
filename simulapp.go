@@ -75,7 +75,7 @@ func (sa *SimulApp) read() {
 					msg.Rebroadcast--
 					js, _ := json.Marshal(msg)
 					p = p2p.NewParcel(p2p.Broadcast, js)
-					sa.net.BlockingSend(p)
+					sa.net.Send(p)
 					if sa.id == 0 {
 						fmt.Printf("1 sent [%d %d %d]\n", msg.Id, msg.Count, msg.Rebroadcast)
 					}
@@ -86,7 +86,7 @@ func (sa *SimulApp) read() {
 }
 
 func (sa *SimulApp) emit() {
-	t := time.NewTicker(time.Second)
+	t := time.NewTicker(time.Millisecond * 150)
 	for range t.C {
 		select {
 		case <-sa.stop:
@@ -97,6 +97,6 @@ func (sa *SimulApp) emit() {
 		msg := Msg{Id: sa.id, Count: sa.counter, Rebroadcast: 5}
 		js, _ := json.Marshal(msg)
 		p := p2p.NewParcel(p2p.Broadcast, js)
-		sa.net.BlockingSend(p)
+		sa.net.Send(p)
 	}
 }

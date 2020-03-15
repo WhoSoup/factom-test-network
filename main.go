@@ -70,6 +70,7 @@ func startANetwork() *p2p.Network {
 	//config.PersistInterval = time.Minute
 	//config.Special = "127.1.0.1:8888,127.41.0.41:8888,127.42.0.42:8888"
 	config.ProtocolVersion = versionFromID(id)
+	//config.ChannelCapacity = 10
 
 	if id == 1 {
 		config.Special = "127.0.0.23:8888"
